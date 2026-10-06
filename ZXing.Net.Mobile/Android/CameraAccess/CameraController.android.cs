@@ -32,6 +32,8 @@ namespace ZXing.Mobile.CameraAccess
 
 		public Camera Camera { get; private set; }
 
+		public CameraResolution CameraResolution { get; private set; }
+
 		public int LastCameraDisplayOrientationDegree { get; private set; }
 
 		public void RefreshCamera()
@@ -242,12 +244,11 @@ namespace ZXing.Mobile.CameraAccess
 			var selectedFps = parameters.SupportedPreviewFpsRange.FirstOrDefault();
 			if (selectedFps != null)
 			{
-				// This will make sure we select a range with the lowest minimum FPS
-				// and maximum FPS which still has the lowest minimum
-				// This should help maximize performance / support for hardware
+				// This will make sure we select a range with the highest maximum fps
+				// which still has the lowest minimum fps (Widest Range)
 				foreach (var fpsRange in parameters.SupportedPreviewFpsRange)
 				{
-					if (fpsRange[0] <= selectedFps[0] && fpsRange[1] > selectedFps[1])
+					if (fpsRange[1] > selectedFps[1] || fpsRange[1] == selectedFps[1] && fpsRange[0] < selectedFps[0])
 						selectedFps = fpsRange;
 				}
 				parameters.SetPreviewFpsRange(selectedFps[0], selectedFps[1]);
@@ -301,6 +302,8 @@ namespace ZXing.Mobile.CameraAccess
 			{
 				Android.Util.Log.Debug(MobileBarcodeScanner.TAG,
 					"Selected Resolution: " + resolution.Width + "x" + resolution.Height);
+
+				CameraResolution = resolution;
 				parameters.SetPreviewSize(resolution.Width, resolution.Height);
 			}
 

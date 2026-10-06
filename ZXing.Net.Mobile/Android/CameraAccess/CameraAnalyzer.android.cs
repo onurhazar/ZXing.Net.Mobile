@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Android.Views;
 using ApxLabs.FastAndroidCamera;
@@ -13,7 +12,8 @@ namespace ZXing.Mobile.CameraAccess
 		Task processingTask;
 		DateTime lastPreviewAnalysis = DateTime.UtcNow;
 		bool wasScanned;
-		IScannerSessionHost scannerHost;
+		readonly IScannerSessionHost scannerHost;
+		BarcodeReaderGeneric barcodeReader;
 
 		public CameraAnalyzer(SurfaceView surfaceView, IScannerSessionHost scannerHost)
 		{
@@ -46,6 +46,7 @@ namespace ZXing.Mobile.CameraAccess
 		{
 			cameraEventListener.OnPreviewFrameReady += HandleOnPreviewFrameReady;
 			cameraController.SetupCamera();
+			barcodeReader = scannerHost.ScanningOptions.BuildBarcodeReader();
 		}
 
 		public void AutoFocus()
@@ -108,11 +109,9 @@ namespace ZXing.Mobile.CameraAccess
 
 		void DecodeFrame(FastJavaByteArray fastArray)
 		{
-			var cameraParameters = cameraController.Camera.GetParameters();
-			var width = cameraParameters.PreviewSize.Width;
-			var height = cameraParameters.PreviewSize.Height;
-
-			var barcodeReader = scannerHost.ScanningOptions.BuildBarcodeReader();
+			var resolution = cameraController.CameraResolution;
+			var width = resolution.Width;
+			var height = resolution.Height;
 
 			var rotate = false;
 			var newWidth = width;
@@ -128,14 +127,13 @@ namespace ZXing.Mobile.CameraAccess
 				newHeight = width;
 			}
 
-			ZXing.Result result = null;
 			var start = PerformanceCounter.Start();
 
 			LuminanceSource fast = new FastJavaByteArrayYUVLuminanceSource(fastArray, width, height, 0, 0, width, height); // _area.Left, _area.Top, _area.Width, _area.Height);
 			if (rotate)
 				fast = fast.rotateCounterClockwise();
 
-			result = barcodeReader.Decode(fast);
+			var result = barcodeReader.Decode(fast);
 
 			fastArray.Dispose();
 			fastArray = null;
